@@ -1,0 +1,26 @@
+# Build artifacts
+*.o
+*.exe
+*.out
+*.obj
+*.d
+
+# Libraries
+*.a
+*.so
+*.dll
+
+# VSCode settings
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Backup files
+*~

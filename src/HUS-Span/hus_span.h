@@ -24,7 +24,6 @@ void build_1_seq_uc();
 void build_1_seq_uc(){
     for(int seq_index=0;seq_index<db.size();seq_index++){
         int seq_utility = seq_util[seq_index];
-        if(seq_utility<threshold) continue;
         Sequence seq = db[seq_index];
         vector<Itemset> transactions = seq.tid;
         for(int tid=0;tid<transactions.size();tid++){
@@ -61,9 +60,12 @@ void RSU_pruning(SequenceInfo* seq_info,unordered_set<int>* list,unordered_map<i
         unordered_map<int,int> max_rsu;
         for(auto it=list_instance_pos[item].begin();it!=list_instance_pos[item].end();++it){
             ChainData *cd =&one_seq_info[item-1].uc[it->first].chain[it->second]; //曾經最大最訝異BUG item-1填成last_item-1
-            //if(flag)cout<<seq_info->uc[it->first].chain[it->second].acu<<","<<cd->ru<<"|"<<max_rsu[it->first]<<endl;
-            if(seq_info->uc[it->first].chain[it->second].acu+cd->ru>max_rsu[it->first] && cd->ru>0){
-                max_rsu[it->first]=seq_info->uc[it->first].chain[it->second].acu+cd->ru;
+            UtilityChain *cd2 = &seq_info->uc[it->first];
+            //if(seq_info->seq_name.compare("1")==0 && item==4)cout<<it->first<<','<<it->second<<endl;
+                //cout<<seq_info->uc[it->first].chain[it->second].acu<<","<<cd->ru<<"|"<<max_rsu[it->first]<<endl;
+            //if(seq_info->seq_name.compare("1,4")==0)cout<<item<<","<<cd2->acu+cd2->ru<<endl;
+            if(cd2->PEU_s>max_rsu[it->first]){
+                max_rsu[it->first]=cd2->PEU_s;
             }
         }
                 
@@ -71,13 +73,14 @@ void RSU_pruning(SequenceInfo* seq_info,unordered_set<int>* list,unordered_map<i
             rsu_sum+=it->second;
         }
 
-
+        
         if(rsu_sum<threshold) removed.push_back(item);
     }
 
     for(auto item:removed){
         list->erase(item);
     }
+
     return;
 }
 pair<unordered_set<int>,unordered_map<int,vector<pair<int,int>>>> generate_ilist(SequenceInfo seq_info){
@@ -91,6 +94,7 @@ pair<unordered_set<int>,unordered_map<int,vector<pair<int,int>>>> generate_ilist
         for(auto cd_it=uc.chain.begin();cd_it!=uc.chain.end();++cd_it){
             ChainData* cd=&cd_it->second;
             int item_index=item_pos_map[last_item-'0'][uc.sequence_id][cd->tid].index;
+            //if(last_item=='1')cout<<uc.sequence_id<<','<<cd->tid<<","<<item_index<<endl;
             for(int i=item_index+1;i<db[uc.sequence_id].tid[cd->tid].item.size();i++){
                 int item=db[uc.sequence_id].tid[cd->tid].item[i].first;
                 ilist.insert(item);
@@ -163,6 +167,7 @@ void build_seq_info(SequenceInfo* new_seq,ChainData* new_seq_cd,ChainData* seq_c
 }
 set<string> s;
 void hus_span(SequenceInfo seq_info){
+    //if(!seq_info.seq_name.compare("1,4|1"))cout<<seq_info.PEU_t<<"???";
     if(seq_info.PEU_t<threshold) return;
     s.insert(seq_info.seq_name);
     unordered_set<int> ilist;
@@ -194,7 +199,7 @@ void hus_span(SequenceInfo seq_info){
                 }
             }
         }*/
-        //if(new_seq.U_t>=threshold)cout<<new_seq.seq_name<<endl;
+        if(new_seq.U_t>=threshold)cout<<new_seq.seq_name<<":"<<new_seq.U_t<<endl;
         hus_span(new_seq);
     }
 
@@ -217,7 +222,7 @@ void hus_span(SequenceInfo seq_info){
             }   
         }
 
-        if(new_seq.U_t>=threshold)cout<<new_seq.seq_name<<","<<new_seq.U_t<<endl;
+        if(new_seq.U_t>=threshold)cout<<new_seq.seq_name<<":"<<new_seq.U_t<<endl;
         hus_span(new_seq);
     }
 

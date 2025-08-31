@@ -75,10 +75,8 @@ int main() {
     read_database("src/jzwpaper_db.txt",db,seq_util,item_pos_map);
     read_ex_util("src/jzwpaper_utb.txt",ex_util_map);
     one_seq_info=vector<SequenceInfo>(db.size());
-    set_threshold(100);                           
-    db_print();
+    set_threshold(116);                           
     build_1_seq_uc();
-    
     for(int i=0;i<one_seq_info.size();i++){
         hus_span(one_seq_info[i]);
     }

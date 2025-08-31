@@ -14,10 +14,8 @@ SequenceInfo::SequenceInfo() {
 SequenceInfo::~SequenceInfo() {
     // Destructor
 }
-void SequenceInfo::update_PEU_t(ChainData cd) {
-    if(PEU_t<cd.acu+cd.ru && cd.ru>0){
-        PEU_t=cd.acu+cd.ru;
-    }
+void SequenceInfo::add_PEU_t(int peu) {
+    PEU_t+=peu;
 }
 void SequenceInfo::add_U_t(int u) {
     U_t+=u;

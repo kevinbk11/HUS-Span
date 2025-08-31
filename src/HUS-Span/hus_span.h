@@ -42,8 +42,10 @@ void build_1_seq_uc(){
 
                 ChainData cd=ChainData({tid,item_utility,seq_utility});
                 item_seq_info->uc[seq_index].chain.insert({tid,cd});
-                item_seq_info->update_PEU_t(cd);
-                item_seq_info->uc[seq_index].update_PEU_s(cd);
+                int peu=item_seq_info->uc[seq_index].PEU_s;
+                if(item_seq_info->uc[seq_index].update_PEU_s(cd)){
+                    item_seq_info->add_PEU_t((cd.acu+cd.ru)-peu);
+                }
                 int u = item_seq_info->uc[seq_index].u;
 
                 if(item_seq_info->uc[seq_index].update_u(cd.acu)){
@@ -151,9 +153,22 @@ void build_seq_info(SequenceInfo* new_seq,ChainData* new_seq_cd,ChainData* seq_c
             new_seq_cd->acu=new_chain_data.acu;
             new_seq_cd->ru=new_chain_data.ru;
         }
+/*
 
-        new_seq->update_PEU_t(new_chain_data);
-        new_seq->uc[*seq_num].update_PEU_s(new_chain_data);
+                if(item_seq_info->uc[seq_index].update_PEU_s(cd)){
+                    item_seq_info->add_PEU_t((cd.acu+cd.ru)-peu);
+                }
+                int u = item_seq_info->uc[seq_index].u;
+
+                if(item_seq_info->uc[seq_index].update_u(cd.acu)){
+                    item_seq_info->add_U_t(cd.acu-u);
+                }
+*/
+        int peu=new_seq->uc[*seq_num].PEU_s;
+        if(new_seq->uc[*seq_num].update_PEU_s(new_chain_data)){
+            new_seq->add_PEU_t(new_chain_data.acu+new_chain_data.ru-peu);
+        }
+
         int u = new_seq->uc[*seq_num].u;
         if(new_seq->uc[*seq_num].update_u(new_chain_data.acu)){
             new_seq->add_U_t(new_chain_data.acu-u);

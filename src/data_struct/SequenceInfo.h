@@ -20,10 +20,12 @@ struct UtilityChain{
     int PEU_s;
     int u=0;
     std::unordered_map<int,ChainData> chain;
-    void update_PEU_s(ChainData cd){
+    bool update_PEU_s(ChainData cd){
         if(PEU_s<cd.acu+cd.ru && cd.ru>0){
             PEU_s=cd.acu+cd.ru;
+            return true;
         }
+        return false;
     }
     bool update_u(int u){
         if(this->u<u){
@@ -37,7 +39,7 @@ class SequenceInfo {
 public:
     SequenceInfo();
     ~SequenceInfo();
-    void update_PEU_t(ChainData cd);
+    void add_PEU_t(int peu);
     void add_U_t(int u);
     std::string seq_name;
     int PEU_t=0;

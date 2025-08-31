@@ -28,6 +28,49 @@ void info_print(vector<SequenceInfo> seq_info){
         }
     }
 }
+set<string> ans;
+int test(){
+    string filename = "src/patterns.txt";
+    ifstream infile(filename);
+
+    if (!infile.is_open()) {
+        cerr << "無法開啟檔案: " << filename << endl;
+        return 1;
+    }
+
+    string line;
+    int lineNum = 1;
+
+    // 一行一行讀取
+    while (getline(infile, line)) {
+
+        //cout << "第 " << lineNum << " 行: " << line << endl;
+        ans.insert(line);
+        lineNum++;
+    }
+    for(auto z:s){
+        bool find=false;
+        for(auto x:ans){
+            if(!z.compare(x)){
+                find=true;
+                break;
+            }
+        }
+        if(!find)cout<<z<<endl;
+    }
+    for(auto z:ans){
+        bool find=false;
+        for(auto x:s){
+            if(!z.compare(x)){
+                find=true;
+                break;
+            }
+        }
+        if(!find)cout<<z<<endl;
+    }
+    infile.close();
+    return 0;
+}
 int main() {
     read_database("src/jzwpaper_db.txt",db,seq_util,item_pos_map);
     read_ex_util("src/jzwpaper_utb.txt",ex_util_map);
@@ -39,5 +82,13 @@ int main() {
     for(int i=0;i<one_seq_info.size();i++){
         hus_span(one_seq_info[i]);
     }
-    
+    /*cout<<"start"<<endl;
+
+    for(string str:s){
+        cout<<str<<endl;
+    }*/
+   test();
+   cout<<ans.size()<<endl;
+   cout<<s.size()<<endl;
+
 }

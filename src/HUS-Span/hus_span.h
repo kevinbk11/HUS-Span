@@ -7,6 +7,7 @@
 #include "data_struct/Item_pos_info.h"
 #include <unordered_set>
 #include <unordered_map>
+#include <set>
 // 函式宣告
 int threshold=0;
 vector<Sequence> db;
@@ -14,7 +15,6 @@ vector<int> seq_util;
 unordered_map<int,int> ex_util_map;
 unordered_map<int,unordered_map<int,unordered_map<int,ItemPosInfo>>> item_pos_map; //item, <sequence_id, itemset_id>
 vector<SequenceInfo> one_seq_info;
-
 void set_threshold(int th){
     threshold=th;
 }
@@ -55,28 +55,39 @@ void build_1_seq_uc(){
         }
     }
 }
-void RSU_pruning(unordered_set<int>* list,unordered_map<int,vector<pair<int,int>>> list_instance_pos,char last_item){
+void RSU_pruning(unordered_set<int>* list,unordered_map<int,vector<pair<int,int>>> list_instance_pos){
     vector<int> removed;
     for(auto item:*list){
         int rsu_sum=0;
         unordered_map<int,int> max_rsu;
         for(auto it=list_instance_pos[item].begin();it!=list_instance_pos[item].end();++it){
-            ChainData *cd =&one_seq_info[last_item-'0'-1].uc[it->first].chain[it->second];
+            ChainData *cd =&one_seq_info[item-1].uc[it->first].chain[it->second]; //曾經最大最訝異BUG item-1填成last_item-1
             if(cd->acu+cd->ru>max_rsu[it->first] && cd->ru>0){
                 max_rsu[it->first]=cd->acu+cd->ru;
             }
         }
+                
         for(auto it=max_rsu.begin();it!=max_rsu.end();++it){
             rsu_sum+=it->second;
         }
+        
         if(rsu_sum<threshold) removed.push_back(item);
     }
+
     for(auto item:removed){
         list->erase(item);
     }
     return;
 }
 pair<unordered_set<int>,unordered_map<int,vector<pair<int,int>>>> generate_ilist(SequenceInfo seq_info){
+    /*if(!seq_info.seq_name.compare("2")){
+        for(auto cc:seq_info.uc){
+            cout<<cc.second.sequence_id<<","<<cc.second.PEU_s<<"L1"<<endl;
+            for(auto bb:cc.second.chain){
+                cout<<bb.second.acu<<","<<bb.second.ru<<","<<bb.second.tid<<"L2"<<endl;
+            }
+        }
+    }*/
     unordered_set<int> ilist;
     unordered_map<int,vector<pair<int,int>>> ilist_instance_pos;
     char last_item=seq_info.seq_name[seq_info.seq_name.size()-1];
@@ -96,7 +107,7 @@ pair<unordered_set<int>,unordered_map<int,vector<pair<int,int>>>> generate_ilist
 
     }
 
-    RSU_pruning(&ilist,ilist_instance_pos,last_item);
+    RSU_pruning(&ilist,ilist_instance_pos);
     return pair(ilist,ilist_instance_pos);
 }
 struct PairHash {
@@ -110,12 +121,20 @@ pair<unordered_set<int>,unordered_map<int,vector<pair<int,int>>>> generate_llist
     unordered_map<int,vector<pair<int,int>>>llist_instance_pos;
     unordered_set<pair<int,int>,PairHash> visited;
     char last_item=seq_info.seq_name[seq_info.seq_name.size()-1];
+
     for(auto it=seq_info.uc.begin();it!=seq_info.uc.end();++it){
         UtilityChain uc=it->second;
         for(auto cd_it=uc.chain.begin();cd_it!=uc.chain.end();++cd_it){
             ChainData* cd=&cd_it->second;
             int tid_index=item_pos_map[last_item-'0'][uc.sequence_id][cd->tid].itemset_id;
-            
+            if(!seq_info.seq_name.compare("2")){
+                /*printf("%d,%d,%d,%d\n"
+                    ,last_item-'0'
+                    ,uc.sequence_id
+                    ,cd->tid
+                    ,item_pos_map[last_item-'0'][uc.sequence_id][cd->tid].itemset_id);*/
+            }
+           
             for(int tid=1+tid_index;tid<db[uc.sequence_id].tid.size();tid++){
                 for(int item_index=0;item_index<db[uc.sequence_id].tid[tid].item.size();item_index++){
                     if(visited.count(make_pair(uc.sequence_id,tid))!=0)continue;
@@ -132,15 +151,18 @@ pair<unordered_set<int>,unordered_map<int,vector<pair<int,int>>>> generate_llist
         }
         cout<<endl;
     }*/
-    RSU_pruning(&llist,llist_instance_pos,last_item);
+    RSU_pruning(&llist,llist_instance_pos);
     return pair(llist,llist_instance_pos);
 }
 /*SequenceInfo build_seq_info(string seq_name){
 
 
 }*/
+set<string> s;
 void hus_span(SequenceInfo seq_info){
+    
     if(seq_info.PEU_t<threshold) return;
+    s.insert(seq_info.seq_name);
     unordered_set<int> ilist;
     unordered_set<int> llist;
     unordered_map<int,vector<pair<int,int>>> ilist_instance_pos;
@@ -152,7 +174,6 @@ void hus_span(SequenceInfo seq_info){
     llist=p2.first;
     llist_instance_pos=p2.second;
     //cout<<seq_info.seq_name[seq_info.seq_name.size()-1]<<":"<<endl;
-
     for(int item:ilist){
         SequenceInfo new_seq;
         new_seq.seq_name=seq_info.seq_name+","+to_string(item);
@@ -160,13 +181,13 @@ void hus_span(SequenceInfo seq_info){
             int* seq_num=&pos.first;
             int* tid=&pos.second;
             int* index=&item_pos_map[item][*seq_num][*tid].index;
+            if(!new_seq.seq_name.compare("2,4")){
+                printf("(%d,%d,%d)",*seq_num,*tid,*index);
+            }
             ChainData* cd=&one_seq_info[item-1].uc[*seq_num].chain[*tid];
             ChainData* new_seq_cd = &new_seq.uc[*seq_num].chain[*tid];
             ChainData* seq_cd = &seq_info.uc[*seq_num].chain[*tid];
-            ChainData new_chain_data;
-            new_chain_data.acu=seq_cd->acu+cd->acu;
-            new_chain_data.ru=cd->ru;
-            new_chain_data.tid=*tid;
+            ChainData new_chain_data={*tid,seq_cd->acu+cd->acu,cd->ru};
 
             if(new_seq_cd->acu<new_chain_data.acu){
                 new_seq_cd->acu=new_chain_data.acu;
@@ -193,16 +214,16 @@ void hus_span(SequenceInfo seq_info){
             }
             cout<<endl;
         }*/
-        if(!new_seq.seq_name.compare("1,4|1,2|2,4|1,2|4,599")){
+        /*if(!new_seq.seq_name.compare("2,4")){
             /*cout<<"seq:"<<new_seq.seq_name<<",";
-            printf("peu:%d,ut:%d\n",new_seq.PEU_t,new_seq.U_t);*/
+            printf("peu:%d,ut:%d\n",new_seq.PEU_t,new_seq.U_t);
             for(auto cc:new_seq.uc){
                 cout<<cc.second.sequence_id<<","<<cc.second.PEU_s<<endl;
                 for(auto bb:cc.second.chain){
-                    cout<<bb.second.acu<<","<<bb.second.ru<<endl;
+                    cout<<bb.second.acu<<","<<bb.second.ru<<","<<bb.second.tid<<endl;
                 }
             }
-        }
+        }*/
         hus_span(new_seq);
     }
 
@@ -222,10 +243,7 @@ void hus_span(SequenceInfo seq_info){
                     ChainData* cd=&one_seq_info[item-1].uc[*seq_num].chain[*tid];
                     ChainData* new_seq_cd = &new_seq.uc[*seq_num].chain[*tid];
                     ChainData* seq_cd = &seq_info.uc[*seq_num].chain[c_d.tid];
-                    ChainData new_chain_data;
-                    new_chain_data.acu=seq_cd->acu+cd->acu;
-                    new_chain_data.ru=cd->ru;
-                    new_chain_data.tid=*tid;
+                    ChainData new_chain_data={*tid,seq_cd->acu+cd->acu,cd->ru};
                     
                     if(new_seq_cd->acu<new_chain_data.acu){
                         new_seq_cd->acu=new_chain_data.acu;
@@ -256,13 +274,14 @@ void hus_span(SequenceInfo seq_info){
             }
             //cout<<endl;
         }*/
-        if(!new_seq.seq_name.compare("4,5|5")){
+        if(!new_seq.seq_name.compare("2,4|1,2|19")){
             /*cout<<"seq:"<<new_seq.seq_name<<",";
             printf("peu:%d,ut:%d\n",new_seq.PEU_t,new_seq.U_t);*/
             for(auto cc:new_seq.uc){
                 cout<<cc.second.sequence_id<<","<<cc.second.PEU_s<<endl;
                 for(auto bb:cc.second.chain){
                     cout<<bb.second.acu<<","<<bb.second.ru<<endl;
+                    cout<<endl<<bb.second.tid;
                 }
             }
         }

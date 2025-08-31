@@ -75,7 +75,7 @@ int main() {
     read_database("src/jzwpaper_db.txt",db,seq_util,item_pos_map);
     read_ex_util("src/jzwpaper_utb.txt",ex_util_map);
     one_seq_info=vector<SequenceInfo>(db.size());
-    set_threshold(0);                           
+    set_threshold(100);                           
     db_print();
     build_1_seq_uc();
     
@@ -87,8 +87,6 @@ int main() {
     for(string str:s){
         cout<<str<<endl;
     }*/
-   test();
-   cout<<ans.size()<<endl;
-   cout<<s.size()<<endl;
+   //for(auto z:s)cout<<z<<endl;
 
 }

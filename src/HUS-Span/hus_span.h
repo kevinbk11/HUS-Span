@@ -55,19 +55,19 @@ void build_1_seq_uc(){
         }
     }
 }
-void RSU_pruning(SequenceInfo* seq_info,unordered_set<int>* list,unordered_map<int,vector<pair<int,int>>> list_instance_pos){
+void RSU_pruning(SequenceInfo* seq_info,unordered_set<int>* list,unordered_map<int,vector<pair<int,int>>>* list_instance_pos){
     vector<int> removed;
     for(auto item:*list){
         int rsu_sum=0;
         unordered_map<int,int> max_rsu;
-        for(auto it=list_instance_pos[item].begin();it!=list_instance_pos[item].end();++it){
-            ChainData *cd =&one_seq_info[item-1].uc[it->first].chain[it->second]; //曾經最大最訝異BUG item-1填成last_item-1
-            UtilityChain *cd2 = &seq_info->uc[it->first];
-            //if(seq_info->seq_name.compare("1")==0 && item==4)cout<<it->first<<','<<it->second<<endl;
-                //cout<<seq_info->uc[it->first].chain[it->second].acu<<","<<cd->ru<<"|"<<max_rsu[it->first]<<endl;
-            //if(seq_info->seq_name.compare("1,4")==0)cout<<item<<","<<cd2->acu+cd2->ru<<endl;
-            if(cd2->PEU_s>max_rsu[it->first]){
-                max_rsu[it->first]=cd2->PEU_s;
+        auto &instances = (*list_instance_pos)[item];
+        for (auto it = instances.begin(); it != instances.end(); ++it) {
+            int seq_id = it->first;
+            int tid    = it->second;
+            ChainData *cd = &one_seq_info[item-1].uc[seq_id].chain[tid];
+            UtilityChain *cd2 = &seq_info->uc[seq_id];
+            if (cd2->PEU_s > max_rsu[seq_id]) {
+                max_rsu[seq_id] = cd2->PEU_s;
             }
         }
                 
@@ -85,29 +85,28 @@ void RSU_pruning(SequenceInfo* seq_info,unordered_set<int>* list,unordered_map<i
 
     return;
 }
-pair<unordered_set<int>,unordered_map<int,vector<pair<int,int>>>> generate_ilist(SequenceInfo seq_info){
-    unordered_set<int> ilist;
-    unordered_map<int,vector<pair<int,int>>> ilist_instance_pos;
-    char last_item=seq_info.seq_name[seq_info.seq_name.size()-1];
-    for(auto it=seq_info.uc.begin();it!=seq_info.uc.end();++it){
+void generate_ilist(SequenceInfo *seq_info,
+                    unordered_set<int>& ilist,
+                    unordered_map<int,vector<pair<int,int>>>& ilist_instance_pos){
+    char last_item=seq_info->seq_name.at(seq_info->seq_name.length()-1);
+    for(auto it=seq_info->uc.begin();it!=seq_info->uc.end();++it){
         
-        UtilityChain uc=it->second;
+        UtilityChain *uc=&it->second;
         
-        for(auto cd_it=uc.chain.begin();cd_it!=uc.chain.end();++cd_it){
+        for(auto cd_it=uc->chain.begin();cd_it!=uc->chain.end();++cd_it){
             ChainData* cd=&cd_it->second;
-            int item_index=item_pos_map[last_item-'0'][uc.sequence_id][cd->tid].index;
+            int item_index=item_pos_map[last_item-'0'][uc->sequence_id][cd->tid].index;
             //if(last_item=='1')cout<<uc.sequence_id<<','<<cd->tid<<","<<item_index<<endl;
-            for(int i=item_index+1;i<db[uc.sequence_id].tid[cd->tid].item.size();i++){
-                int item=db[uc.sequence_id].tid[cd->tid].item[i].first;
+            for(int i=item_index+1;i<db[uc->sequence_id].tid[cd->tid].item.size();i++){
+                int item=db[uc->sequence_id].tid[cd->tid].item[i].first;
                 ilist.insert(item);
-                ilist_instance_pos[item].push_back(make_pair(uc.sequence_id,cd->tid));
+                ilist_instance_pos[item].push_back(make_pair(uc->sequence_id,cd->tid));
             }
         }
 
     }
 
-    RSU_pruning(&seq_info,&ilist,ilist_instance_pos);
-    return pair(ilist,ilist_instance_pos);
+    RSU_pruning(seq_info,&ilist,&ilist_instance_pos);
 }
 struct PairHash {
     size_t operator()(const std::pair<int,int>& p) const {
@@ -115,37 +114,37 @@ struct PairHash {
         return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
     }
 };
-pair<unordered_set<int>,unordered_map<int,vector<pair<int,int>>>> generate_llist(SequenceInfo seq_info){
-    unordered_set<int> llist;
-    unordered_map<int,vector<pair<int,int>>>llist_instance_pos;
+void generate_llist(SequenceInfo* seq_info,
+                    unordered_set<int>& llist,
+                    unordered_map<int,vector<pair<int,int>>>& llist_instance_pos){
     unordered_set<pair<int,int>,PairHash> visited;
-    char last_item=seq_info.seq_name[seq_info.seq_name.size()-1];
+    char last_item=seq_info->seq_name[seq_info->seq_name.size()-1];
 
-    for(auto it=seq_info.uc.begin();it!=seq_info.uc.end();++it){
-        UtilityChain uc=it->second;
-        for(auto cd_it=uc.chain.begin();cd_it!=uc.chain.end();++cd_it){
+    for(auto it=seq_info->uc.begin();it!=seq_info->uc.end();++it){
+        UtilityChain* uc=&it->second;
+        for(auto cd_it=uc->chain.begin();cd_it!=uc->chain.end();++cd_it){
             ChainData* cd=&cd_it->second;
-            int tid_index=item_pos_map[last_item-'0'][uc.sequence_id][cd->tid].itemset_id;
-            for(int tid=1+tid_index;tid<db[uc.sequence_id].tid.size();tid++){
-                for(int item_index=0;item_index<db[uc.sequence_id].tid[tid].item.size();item_index++){
-                    if(visited.count(make_pair(uc.sequence_id,tid))!=0)continue;
-                    int item=db[uc.sequence_id].tid[tid].item[item_index].first;
-                    llist_instance_pos[item].push_back(make_pair(uc.sequence_id,tid));
+            int tid_index=item_pos_map[last_item-'0'][uc->sequence_id][cd->tid].itemset_id;
+            for(int tid=1+tid_index;tid<db[uc->sequence_id].tid.size();tid++){
+                for(int item_index=0;item_index<db[uc->sequence_id].tid[tid].item.size();item_index++){
+                    if(visited.count(make_pair(uc->sequence_id,tid))!=0)continue;
+                    int item=db[uc->sequence_id].tid[tid].item[item_index].first;
+                    llist_instance_pos[item].push_back(make_pair(uc->sequence_id,tid));
                     llist.insert(item);
                 }
             }
         }
     }
 
-    RSU_pruning(&seq_info,&llist,llist_instance_pos);
-    return pair(llist,llist_instance_pos);
+    RSU_pruning(seq_info,&llist,&llist_instance_pos);
+
 }
-void build_seq_info(SequenceInfo* new_seq,ChainData* new_seq_cd,ChainData* seq_cd,pair<int,int>* pos,int* item){
+void build_seq_info(SequenceInfo* new_seq,ChainData* seq_cd,pair<int,int>* pos,int* item){
 
         int* seq_num=&pos->first;
         int* tid=&pos->second;
         int* index=&item_pos_map[*item][*seq_num][*tid].index;
-
+        ChainData* new_seq_cd = &new_seq->uc[*seq_num].chain[*tid];
         ChainData* cd=&one_seq_info[*item-1].uc[*seq_num].chain[*tid];
         ChainData new_chain_data={*tid,seq_cd->acu+cd->acu,cd->ru};
 
@@ -153,17 +152,6 @@ void build_seq_info(SequenceInfo* new_seq,ChainData* new_seq_cd,ChainData* seq_c
             new_seq_cd->acu=new_chain_data.acu;
             new_seq_cd->ru=new_chain_data.ru;
         }
-/*
-
-                if(item_seq_info->uc[seq_index].update_PEU_s(cd)){
-                    item_seq_info->add_PEU_t((cd.acu+cd.ru)-peu);
-                }
-                int u = item_seq_info->uc[seq_index].u;
-
-                if(item_seq_info->uc[seq_index].update_u(cd.acu)){
-                    item_seq_info->add_U_t(cd.acu-u);
-                }
-*/
         int peu=new_seq->uc[*seq_num].PEU_s;
         if(new_seq->uc[*seq_num].update_PEU_s(new_chain_data)){
             new_seq->add_PEU_t(new_chain_data.acu+new_chain_data.ru-peu);
@@ -181,64 +169,61 @@ void build_seq_info(SequenceInfo* new_seq,ChainData* new_seq_cd,ChainData* seq_c
 
 }
 set<string> s;
-void hus_span(SequenceInfo seq_info){
+int i_e=0;
+int s_e=0;
+int call=0;
+int h=0;
+void hus_span(SequenceInfo* seq_info){
+    call++;
     //if(!seq_info.seq_name.compare("1,4|1"))cout<<seq_info.PEU_t<<"???";
-    if(seq_info.PEU_t<threshold) return;
-    s.insert(seq_info.seq_name);
+    if(seq_info->PEU_t<threshold) return;
+    s.insert(seq_info->seq_name);
     unordered_set<int> ilist;
     unordered_set<int> llist;
     unordered_map<int,vector<pair<int,int>>> ilist_instance_pos;
     unordered_map<int,vector<pair<int,int>>>llist_instance_pos;
-    auto p1=generate_ilist(seq_info);
-    auto p2=generate_llist(seq_info);
-    ilist=p1.first;
-    ilist_instance_pos=p1.second;
-    llist=p2.first;
-    llist_instance_pos=p2.second;
+    generate_ilist(seq_info,ilist,ilist_instance_pos);
+    generate_llist(seq_info,llist,llist_instance_pos);
+
     for(int item:ilist){
         SequenceInfo new_seq;
-        new_seq.seq_name=seq_info.seq_name+","+to_string(item);
+        new_seq.seq_name=seq_info->seq_name+","+to_string(item);
         for(auto pos:ilist_instance_pos[item]){
-            ChainData* new_seq_cd = &new_seq.uc[pos.first].chain[pos.second];
-            ChainData* seq_cd = &seq_info.uc[pos.first].chain[pos.second];
-            build_seq_info(&new_seq,new_seq_cd,seq_cd,&pos,&item);
+
+            ChainData* seq_cd = &seq_info->uc[pos.first].chain[pos.second];
+            build_seq_info(&new_seq,seq_cd,&pos,&item);
         }
 
-        /*if(!new_seq.seq_name.compare("1,3,5|1,3")){
-            cout<<"seq:"<<new_seq.seq_name<<",";
-            printf("peu:%d,ut:%d\n",new_seq.PEU_t,new_seq.U_t);
-            for(auto cc:new_seq.uc){
-                cout<<cc.second.sequence_id<<","<<cc.second.PEU_s<<"L1"<<endl;
-                for(auto bb:cc.second.chain){
-                    cout<<bb.second.acu<<","<<bb.second.ru<<"L2"<<endl;
-                }
-            }
-        }*/
-        if(new_seq.U_t>=threshold)cout<<new_seq.seq_name<<":"<<new_seq.U_t<<endl;
-        hus_span(new_seq);
+        if(new_seq.U_t>=threshold){
+            //cout<<new_seq.seq_name<<":"<<new_seq.U_t<<endl;
+            h++;
+        }
+        i_e++;
+        hus_span(&new_seq);
     }
 
 
     for(int item:llist){
         SequenceInfo new_seq;
-        new_seq.seq_name=seq_info.seq_name+"|"+to_string(item);
-        for(auto uc:seq_info.uc){
+        new_seq.seq_name=seq_info->seq_name+"|"+to_string(item);
+        for(auto uc:seq_info->uc){
             for(auto cd:uc.second.chain){
                 ChainData c_d=cd.second;
                  for(auto pos:llist_instance_pos[item]){
                     if(c_d.tid>=pos.second)continue;
-
-                    ChainData* new_seq_cd = &new_seq.uc[pos.first].chain[pos.second];
-                    ChainData* seq_cd = &seq_info.uc[pos.first].chain[c_d.tid];
-
-                    build_seq_info(&new_seq,new_seq_cd,seq_cd,&pos,&item);
+                    ChainData* seq_cd = &seq_info->uc[pos.first].chain[c_d.tid];
+                    build_seq_info(&new_seq,seq_cd,&pos,&item);
 
                 }
             }   
         }
 
-        if(new_seq.U_t>=threshold)cout<<new_seq.seq_name<<":"<<new_seq.U_t<<endl;
-        hus_span(new_seq);
+        if(new_seq.U_t>=threshold){
+            //cout<<new_seq.seq_name<<":"<<new_seq.U_t<<endl;
+            h++;
+        }
+        s_e++;
+        hus_span(&new_seq);
     }
 
 

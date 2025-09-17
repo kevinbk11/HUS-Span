@@ -5,6 +5,8 @@
 #include "data_struct/Sequence.h"
 #include "data_struct/SequenceInfo.h"
 #include "HUS-Span/hus_span.h"
+#include <chrono>
+
 using namespace std;
 //1721
 //db[0].tid[0]
@@ -75,11 +77,25 @@ int main() {
     read_database("src/jzwpaper_db.txt",db,seq_util,item_pos_map);
     read_ex_util("src/jzwpaper_utb.txt",ex_util_map);
     one_seq_info=vector<SequenceInfo>(db.size());
-    set_threshold(140);                           
-    build_1_seq_uc();
-    for(int i=0;i<one_seq_info.size();i++){
-        hus_span(one_seq_info[i]);
-    }
+    set_threshold(95);
+    int total=0;  
+    for(int times=0;times<100;times++){
+        build_1_seq_uc();
+        auto start_time = std::chrono::high_resolution_clock::now();
+        for(int i=0;i<one_seq_info.size();i++){
+            if(one_seq_info[i].U_t>=threshold){
+                //cout<<one_seq_info[i].seq_name<<":"<<one_seq_info[i].U_t<<endl;
+                h++; 
+            }
+            hus_span(&one_seq_info[i]);
+        }
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+        total+=duration.count();
+    }                         
+
+    std::cout << "演算法執行時間： " << total/100 << " 微秒" << std::endl;
+    //cout<<h;
     /*cout<<"start"<<endl;
 
     for(string str:s){
